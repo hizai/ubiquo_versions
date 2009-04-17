@@ -14,3 +14,4 @@ end
 raise "Only PostgreSQL supported" if  included_module == nil
 
 ActiveRecord::Base.connection.class.send(:include, included_module)
+ActiveRecord::ConnectionAdapters::SchemaStatements.send(:include, UbiquoVersions::Adapters::SchemaStatements)
