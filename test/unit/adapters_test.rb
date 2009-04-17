@@ -33,6 +33,6 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     definition = nil
     ActiveRecord::Base.connection.create_table(:test, :versionable => true){|table| definition=table}
     assert_not_nil definition[:content_id]
-
   end
+  
 end
