@@ -9,9 +9,9 @@ module UbiquoVersions
         create_table_without_versions(table_name, options) do |table_definition|
           yield table_definition
           if versionable
-            table_definition.integer :version, :null => false
+            table_definition.sequence table_name, :version_number
             table_definition.boolean :is_current_version, :null => false, :default => false
-            table_definition.content_id table_name
+            table_definition.sequence table_name, :content_id
           end
         end
       end
