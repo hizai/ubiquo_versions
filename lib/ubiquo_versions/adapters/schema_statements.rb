@@ -11,7 +11,7 @@ module UbiquoVersions
           if versionable
             table_definition.integer :version, :null => false
             table_definition.boolean :is_current_version, :null => false, :default => false
-            table_definition.content_id
+            table_definition.content_id table_name
           end
         end
       end
