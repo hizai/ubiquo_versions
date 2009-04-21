@@ -33,8 +33,11 @@ module UbiquoVersions
             when Fixnum
               options[:conditions] = merge_conditions(options[:conditions], {:version_number => v})
             end
+            find_without_current_version(args.first, options)
+          else
+            find_without_current_version(*args)
           end
-          find_without_current_version(args.first, options)
+
         end
 
         # Alias for AR functions when is extended with this module
@@ -72,11 +75,15 @@ module UbiquoVersions
         end
         
         def update_with_version
-          current_instance = self.class.find(self.id).clone
-          self.version_number = next_version_number
-          if update_without_version > 0
-            current_instance.is_current_version = false
-            current_instance.save
+          if self.class.instance_variable_get('@versionable')
+            current_instance = self.class.find(self.id).clone
+            self.version_number = next_version_number
+            if update_without_version > 0
+              current_instance.is_current_version = false
+              current_instance.save              
+            end
+          else
+            update_without_version
           end
         end
         
