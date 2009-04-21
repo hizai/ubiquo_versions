@@ -25,9 +25,13 @@ module UbiquoVersions
         def find_with_current_version(*args)
           if self.instance_variable_get('@versionable')
             options = args.extract_options!
-            all_versions = options.delete(:version)
-            unless all_versions
-              options[:conditions] = merge_conditions(options[:conditions], 'is_current_version = true')
+            v = options.delete(:version)
+            
+            case v
+            when nil
+              options[:conditions] = merge_conditions(options[:conditions], {:is_current_version => true})
+            when Fixnum
+              options[:conditions] = merge_conditions(options[:conditions], {:version_number => v})
             end
           end
           find_without_current_version(args.first, options)

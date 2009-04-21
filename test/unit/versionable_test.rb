@@ -74,6 +74,14 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal 2, TestVersionableModel.count
     assert_equal [versionable, new_version], TestVersionableModel.all(:version => :all)
   end
+
+  def test_should_find_specific_version_if_set
+    versionable = create_versionable_model(:content_id => 2)
+    assert_nil TestVersionableModel.last(:version => 2)
+    versionable.update_attribute :content_id, 10
+    assert_not_nil TestVersionableModel.all(:version => 2)
+    assert_equal 10, TestVersionableModel.last(:version => 2).content_id
+  end
   
   def test_should_merge_find_conditions
     versionable = create_versionable_model(:content_id => 2)
