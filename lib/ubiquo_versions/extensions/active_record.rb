@@ -21,21 +21,27 @@ module UbiquoVersions
           @versionable_options = options
         end
 
-        # Adds :current_version => true to versionable models unless explicitly said :version => :all
+        # Adds :current_version => true to versionable models unless explicitly said :version option
         def find_with_current_version(*args)
           if self.instance_variable_get('@versionable')
             options = args.extract_options!
-            v = options.delete(:version)
+            prepare_options_for_version!(options)
             
-            case v
-            when nil
-              options[:conditions] = merge_conditions(options[:conditions], {:is_current_version => true})
-            when Fixnum
-              options[:conditions] = merge_conditions(options[:conditions], {:version_number => v})
-            end
             find_without_current_version(args.first, options)
           else
             find_without_current_version(*args)
+          end
+        end
+        
+        # Adds :current_version => true to versionable models unless explicitly said :version option
+        def count_with_current_version(*args)
+          if self.instance_variable_get('@versionable')
+            options = args.extract_options!
+            prepare_options_for_version!(options)
+            
+            count_without_current_version(args.first, options)
+          else
+            count_without_current_version(*args)
           end
 
         end
@@ -45,8 +51,23 @@ module UbiquoVersions
           klass.class_eval do
             class << self
               alias_method_chain :find, :current_version
+              alias_method_chain :count, :current_version
             end
           end
+        end
+        
+        def prepare_options_for_version!(options)
+          v = options.delete(:version)
+          
+          case v
+          when Fixnum
+            options[:conditions] = merge_conditions(options[:conditions], {:version_number => v})
+          when :all
+            #do nothing...
+          else # no t an expected version setted. Acts as :last
+            options[:conditions] = merge_conditions(options[:conditions], {:is_current_version => true})
+          end
+          options
         end
 
       end
