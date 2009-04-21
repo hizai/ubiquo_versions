@@ -61,7 +61,7 @@ module UbiquoVersions
             # we do this even if there is not currently any tr. attribute, 
             # as long as @translatable_attributes is defined
             unless self.content_id
-              self.content_id = self.class.connection.next_val_sequence("#{self.class.to_s.tableize}_content_id")
+              self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_content_id")
             end
             unless self.version_number
               self.version_number = next_version_number
@@ -82,7 +82,7 @@ module UbiquoVersions
         
         # Note that every time that is called, a version number is assigned
         def next_version_number
-          self.class.connection.next_val_sequence("#{self.class.to_s.tableize}_version_number")
+          self.class.connection.next_val_sequence("#{self.class.table_name}_version_number")
         end
         
       end
