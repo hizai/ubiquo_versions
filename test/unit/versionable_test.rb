@@ -45,7 +45,7 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_difference 'TestVersionableModel.count' do
       versionable.update_attribute :content_id, 10
     end
-    new_version = TestVersionableModel.last
+    new_version = TestVersionableModel.last(:version => :all)
     assert !new_version.is_current_version
     assert_equal first_version, new_version.version_number
     assert_equal 2, new_version.content_id
@@ -59,6 +59,27 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert versionable.is_current_version
     assert_equal 10, versionable.content_id
   end
+  
+  def test_should_find_just_current_version_by_default
+    versionable = create_versionable_model(:content_id => 2)
+    versionable.update_attribute :content_id, 10
+    assert_equal 2, TestVersionableModel.count
+    assert_equal [versionable], TestVersionableModel.all
+  end
+
+  def test_should_find_all_versions_if_set
+    versionable = create_versionable_model(:content_id => 2)
+    versionable.update_attribute :content_id, 10
+    new_version = TestVersionableModel.last(:version => :all)
+    assert_equal 2, TestVersionableModel.count
+    assert_equal [versionable, new_version], TestVersionableModel.all(:version => :all)
+  end
+  
+  def test_should_merge_find_conditions
+    versionable = create_versionable_model(:content_id => 2)
+    versionable.update_attribute :content_id, 10
+    assert_equal [versionable], TestVersionableModel.all(:conditions => ["content_id = ?", 10], :version => :all)
+  end
 
   private
     
@@ -71,12 +92,13 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
   end
 
   def create_ar_test_backend
-    # Creates a test table for AR things work properly
-    begin
-      ActiveRecord::Base.connection.drop_sequence :test_versionable_models_content_id
-      ActiveRecord::Base.connection.drop_table :test_versionable_models
-    end rescue nil
-    ActiveRecord::Base.connection.create_table :test_versionable_models, :versionable => true do
+    silence_stderr do
+      # Creates a test table for AR things work properly
+      if ActiveRecord::Base.connection.tables.include?("test_versionable_models")
+        ActiveRecord::Base.connection.drop_table :test_versionable_models
+      end
+      ActiveRecord::Base.connection.create_table :test_versionable_models, :versionable => true do
+      end
     end
   end
   

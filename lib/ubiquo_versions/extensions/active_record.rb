@@ -7,7 +7,7 @@ module UbiquoVersions
         base.extend(ClassMethods)
         base.send :include, InstanceMethods
       end
-
+      
       module ClassMethods
 
         # Class method for ActiveRecord that states that a model is versionable
@@ -20,6 +20,28 @@ module UbiquoVersions
           @versionable = true
           @versionable_options = options
         end
+
+        # Adds :current_version => true to versionable models unless explicitly said :version => :all
+        def find_with_current_version(*args)
+          if self.instance_variable_get('@versionable')
+            options = args.extract_options!
+            all_versions = options.delete(:version)
+            unless all_versions
+              options[:conditions] = merge_conditions(options[:conditions], 'is_current_version = true')
+            end
+          end
+          find_without_current_version(args.first, options)
+        end
+
+        # Alias for AR functions when is extended with this module
+        def self.extended(klass)
+          klass.class_eval do
+            class << self
+              alias_method_chain :find, :current_version
+            end
+          end
+        end
+
       end
       
       module InstanceMethods
@@ -58,7 +80,7 @@ module UbiquoVersions
         def next_version_number
           self.class.connection.next_val_sequence("#{self.class.to_s.tableize}_version_number")
         end
-
+        
       end
 
     end
