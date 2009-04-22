@@ -88,6 +88,16 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     versionable.update_attribute :content_id, 10
     assert_equal [versionable], TestVersionableModel.all(:conditions => ["content_id = ?", 10], :version => :all)
   end
+  
+  def test_should_add_version_number_as_uncopiable_between_instances
+    ar = create_ar
+    if ar.class.respond_to?(:add_translatable_attributes) 
+      ar.class.expects(:add_translatable_attributes).with(:version_number)
+    end
+    ar.class_eval do
+      versionable
+    end
+  end
 
   private
     
