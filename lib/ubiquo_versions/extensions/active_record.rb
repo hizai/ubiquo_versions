@@ -23,6 +23,11 @@ module UbiquoVersions
             add_translatable_attributes(:version_number)
           end
           
+          # version_number constitute a translatable scope (should not update old versions)
+          if respond_to?(:add_translatable_scope) 
+            add_translatable_scope("#{self.table_name}.is_current_version = true")
+          end
+          
           define_method("versions") do
             self.class.all({:conditions => [
                 "#{self.class.table_name}.content_id = ? AND #{self.class.table_name}.id != ?", 
