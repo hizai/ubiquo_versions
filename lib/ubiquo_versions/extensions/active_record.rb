@@ -25,7 +25,14 @@ module UbiquoVersions
           
           # version_number constitute a translatable scope (should not update old versions)
           if respond_to?(:add_translatable_scope) 
-            add_translatable_scope("#{self.table_name}.is_current_version = true")
+            add_translatable_scope(
+              lambda do |element|
+                condition = "#{self.table_name}.is_current_version = true"
+                # a new version record with old information doesn't have related translations
+                condition += " AND 1=0 " unless element.is_current_version
+                condition
+              end
+            )
           end
           
           define_method("versions") do
@@ -117,7 +124,8 @@ module UbiquoVersions
           if self.class.instance_variable_get('@versionable')
             current_instance = self.class.find(self.id).clone
             self.version_number = next_version_number
-            if update_without_version > 0
+            # TODO: Add test and delete this since it should be in the same transaction
+            if update_without_version > 0 
               current_instance.is_current_version = false
               current_instance.save              
             end
