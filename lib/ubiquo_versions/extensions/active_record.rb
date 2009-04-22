@@ -9,7 +9,6 @@ module UbiquoVersions
       end
       
       module ClassMethods
-
         # Class method for ActiveRecord that states that a model is versionable
         #
         # EXAMPLE:
@@ -19,6 +18,16 @@ module UbiquoVersions
         def versionable(options = {})
           @versionable = true
           @versionable_options = options
+          
+          define_method("versions") do
+            self.class.all({:conditions => [
+                "#{self.class.table_name}.content_id = ? AND #{self.class.table_name}.id != ?", 
+                self.content_id, 
+                self.id
+              ],
+              :version => :all
+            })
+          end
         end
 
         # Adds :current_version => true to versionable models unless explicitly said :version option

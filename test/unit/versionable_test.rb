@@ -53,6 +53,15 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal 2, new_version.content_id
   end
   
+  def test_should_get_versions
+    versionable = create_versionable_model(:content_id => 2)
+    assert_equal 0, versionable.versions.size
+    versionable.update_attribute :content_id, 2
+    assert_equal 1, versionable.versions.size
+    versionable.update_attribute :content_id, 2
+    assert_equal 2, versionable.versions.size
+  end
+  
   def test_should_update_existing_on_update
     versionable = create_versionable_model(:content_id => 2)
     first_version = versionable.version_number
