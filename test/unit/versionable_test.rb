@@ -42,13 +42,24 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
   def test_should_create_version_on_update
     versionable = create_versionable_model(:content_id => 2)
     first_version = versionable.version_number
-    assert_difference 'TestVersionableModel.count' do
-      versionable.update_attribute :content_id, 10
+    assert_difference 'TestVersionableModel.count(:version => :all)' do
+      assert_no_difference 'TestVersionableModel.count()' do
+        versionable.update_attribute :content_id, 10
+      end
     end
     new_version = TestVersionableModel.last(:version => :all)
     assert !new_version.is_current_version
     assert_equal first_version, new_version.version_number
     assert_equal 2, new_version.content_id
+  end
+  
+  def test_should_get_versions
+    versionable = create_versionable_model(:content_id => 2)
+    assert_equal 0, versionable.versions.size
+    versionable.update_attribute :content_id, 2
+    assert_equal 1, versionable.versions.size
+    versionable.update_attribute :content_id, 2
+    assert_equal 2, versionable.versions.size
   end
   
   def test_should_update_existing_on_update
@@ -63,7 +74,7 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
   def test_should_find_just_current_version_by_default
     versionable = create_versionable_model(:content_id => 2)
     versionable.update_attribute :content_id, 10
-    assert_equal 2, TestVersionableModel.count
+    assert_equal 1, TestVersionableModel.count
     assert_equal [versionable], TestVersionableModel.all
   end
 
@@ -71,7 +82,8 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     versionable = create_versionable_model(:content_id => 2)
     versionable.update_attribute :content_id, 10
     new_version = TestVersionableModel.last(:version => :all)
-    assert_equal 2, TestVersionableModel.count
+    assert_equal 1, TestVersionableModel.count
+    assert_equal 2, TestVersionableModel.count(:version => :all)
     assert_equal [versionable, new_version], TestVersionableModel.all(:version => :all)
   end
 
@@ -82,7 +94,7 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_not_nil TestVersionableModel.all(:version => 2)
     assert_equal 10, TestVersionableModel.last(:version => 2).content_id
   end
-  
+
   def test_should_merge_find_conditions
     versionable = create_versionable_model(:content_id => 2)
     versionable.update_attribute :content_id, 10
