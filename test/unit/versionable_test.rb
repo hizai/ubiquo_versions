@@ -84,7 +84,7 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     new_version = TestVersionableModel.last(:version => :all)
     assert_equal 1, TestVersionableModel.count
     assert_equal 2, TestVersionableModel.count(:version => :all)
-    assert_equal [versionable, new_version], TestVersionableModel.all(:version => :all)
+    assert_equal_set [versionable, new_version], TestVersionableModel.all(:version => :all)
   end
 
   def test_should_find_specific_version_if_set
@@ -110,7 +110,16 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
       versionable
     end
   end
-
+  
+  def test_should_not_create_version_if_update_fails
+    set_test_model_as_versionable
+    versionable = create_versionable_model(:field => 'val')
+    TestVersionableModel.any_instance.expects(:valid?).returns(false)
+    versionable.update_attributes :field => 'newval'
+    assert_equal 'val', versionable.reload.field
+    assert_equal [], versionable.versions
+  end
+  
   private
     
   def create_ar(options = {})
@@ -127,7 +136,8 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
       if ActiveRecord::Base.connection.tables.include?("test_versionable_models")
         ActiveRecord::Base.connection.drop_table :test_versionable_models
       end
-      ActiveRecord::Base.connection.create_table :test_versionable_models, :versionable => true do
+      ActiveRecord::Base.connection.create_table :test_versionable_models, :versionable => true do |t|
+        t.string :field
       end
     end
   end

@@ -122,16 +122,16 @@ module UbiquoVersions
         
         def update_with_version
           if self.class.instance_variable_get('@versionable')
-            current_instance = self.class.find(self.id).clone
             self.version_number = next_version_number
-            # TODO: Add test and delete this since it should be in the same transaction
-            if update_without_version > 0 
-              current_instance.is_current_version = false
-              current_instance.save              
-            end
-          else
-            update_without_version
+            create_new_version
           end
+          update_without_version
+        end
+        
+        def create_new_version
+          current_instance = self.class.find(self.id).clone
+          current_instance.is_current_version = false
+          current_instance.save
         end
         
         # Note that every time that is called, a version number is assigned
