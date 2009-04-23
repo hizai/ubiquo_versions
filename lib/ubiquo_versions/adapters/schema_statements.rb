@@ -12,6 +12,7 @@ module UbiquoVersions
             table_definition.sequence table_name, :version_number
             table_definition.boolean :is_current_version, :null => false, :default => false
             table_definition.sequence table_name, :content_id
+            table_definition.integer :parent_version
           end
         end
       end

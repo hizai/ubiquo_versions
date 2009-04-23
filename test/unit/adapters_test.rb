@@ -8,6 +8,7 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     ActiveRecord::Base.connection.create_table(:test, :versionable => true){|table| definition=table}
     assert_not_nil definition[:version_number]
     assert_not_nil definition[:is_current_version]
+    assert_not_nil definition[:parent_version]
   end
   
   def test_dont_create_versionable_table
@@ -15,6 +16,7 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     ActiveRecord::Base.connection.create_table(:test){|table| definition=table}
     assert_nil definition[:version_number]
     assert_nil definition[:is_current_version]
+    assert_nil definition[:parent_version]
   end
   
   def test_create_content_id_on_versionable_table
