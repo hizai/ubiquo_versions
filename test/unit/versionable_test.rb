@@ -157,6 +157,18 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal [], versionable.versions
   end
   
+  def test_should_maintain_maximum_number_of_versions
+    set_test_model_as_versionable({:max_amount => 3})
+    versionable = create_versionable_model
+    5.times do 
+     versionable.update_attribute :field, 'val'
+     assert versionable.versions.size <= 3
+    end
+    assert_equal 3, versionable.versions.size
+    c = versionable.version_number
+    assert_equal_set [c-1, c-2, c-3], versionable.versions.map(&:version_number)
+  end
+  
   private
     
   def create_ar(options = {})
@@ -179,9 +191,9 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     end
   end
   
-  def set_test_model_as_versionable
+  def set_test_model_as_versionable(options = {})
     TestVersionableModel.class_eval do
-      versionable
+      versionable options
     end
   end
 end

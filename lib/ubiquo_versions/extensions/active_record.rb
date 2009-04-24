@@ -168,6 +168,13 @@ module UbiquoVersions
             current_instance.is_current_version = false
             current_instance.parent_version = self.id
             current_instance.save
+            # delete the older versions if there are too many versions (as defined by max_amount)
+            if max_amount = self.class.instance_variable_get('@versionable_options')[:max_amount]
+              versions_by_number = self.versions.sort {|a,b| a.version_number <=> b.version_number}
+              (versions_by_number.size - max_amount).times do |i|
+                versions_by_number[i].delete
+              end
+            end
           end
         
           def disable_versionable_once          
