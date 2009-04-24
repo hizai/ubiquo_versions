@@ -120,6 +120,43 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal [], versionable.versions
   end
   
+  def test_should_create_new_version
+    set_test_model_as_versionable
+    versionable = create_versionable_model
+    assert_difference 'TestVersionableModel.count(:version => :all)' do
+      versionable.create_new_version  
+    end
+    version = TestVersionableModel.last(:version => :all)
+    
+    assert !version.is_current_version
+    assert_not_nil version.version_number
+    assert_equal versionable.id, version.parent_version
+  end
+  
+  def test_should_set_parent_version_to_itself
+    set_test_model_as_versionable
+    versionable = create_versionable_model
+    assert_equal versionable.id, versionable.parent_version
+  end
+
+  def test_should_create_version_for_other_current_versions
+    set_test_model_as_versionable
+    versionable_1 = create_versionable_model(:content_id => 1, :field => 'val', :is_current_version => true)
+    versionable_2 = create_versionable_model(:content_id => 1, :field => 'val', :is_current_version => true)
+
+    assert_equal 2, TestVersionableModel.count
+    versionable_1.update_attribute :field, 'new'
+    assert_equal 2, versionable_1.versions.size # create 2, update
+    assert_equal 1, versionable_2.versions.size # update
+  end
+  
+  def test_should_execute_without_versionable
+    set_test_model_as_versionable
+    versionable = create_versionable_model
+    TestVersionableModel.without_versionable {versionable.update_attribute :field, 'value'}
+    assert_equal [], versionable.versions
+  end
+  
   private
     
   def create_ar(options = {})

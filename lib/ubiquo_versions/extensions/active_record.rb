@@ -37,12 +37,13 @@ module UbiquoVersions
           
           define_method("versions") do
             self.class.all({:conditions => [
-                "#{self.class.table_name}.content_id = ? AND #{self.class.table_name}.id != ?", 
-                self.content_id, 
-                self.id
-              ],
-              :version => :all
-            })
+                  "#{self.class.table_name}.content_id = ? AND #{self.class.table_name}.id != ? AND #{self.class.table_name}.parent_version = ?", 
+                  self.content_id, 
+                  self.id,
+                  self.parent_version
+                ],
+                :version => :all
+              })
           end
         end
 
@@ -94,6 +95,12 @@ module UbiquoVersions
           end
           options
         end
+        
+        # Used to execute a block that would create a version without this effect
+        def without_versionable
+          @versionable_disabled = true
+          yield
+        end
 
       end
       
@@ -107,8 +114,10 @@ module UbiquoVersions
         # proxy to add a new content_id if empty on creation
         def create_with_version_info
           if self.class.instance_variable_get('@versionable')
-            # we do this even if there is not currently any tr. attribute, 
-            # as long as @translatable_attributes is defined
+            if disable_versionable_once
+              create_without_version_info
+              return
+            end
             unless self.content_id
               self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_content_id")
             end
@@ -116,31 +125,65 @@ module UbiquoVersions
               self.version_number = next_version_number
               self.is_current_version = true
             end
+            create_without_version_info
+
+            unless self.parent_version
+              self.class.without_versionable {update_attribute :parent_version, self.id}
+            end
+            create_version_for_other_current_versions if self.is_current_version
+          else
+            create_without_version_info
+
           end
-          create_without_version_info
         end
         
         def update_with_version
           if self.class.instance_variable_get('@versionable')
+            if disable_versionable_once
+              update_without_version
+              return
+            end
             self.version_number = next_version_number
             create_new_version
+            update_without_version
+            create_version_for_other_current_versions if self.is_current_version
+          else
+            update_without_version
           end
-          update_without_version
         end
         
-        def create_new_version
-          current_instance = self.class.find(self.id).clone
-          current_instance.is_current_version = false
-          current_instance.save
-        end
+          # This function looks for other instances sharing the same content_id and is_current_version = true,
+          # and creates a new version for them too.
+          # This is useful if for any reason (e.g i18n) you have more than one current version per content_id
+          def create_version_for_other_current_versions
+            self.class.all(
+              :conditions => ["content_id = ? AND is_current_version = ? AND id != ?", self.content_id, true, self.id]
+            ).each do |current_version|
+              current_version.create_new_version
+            end
+          end
         
-        # Note that every time that is called, a version number is assigned
-        def next_version_number
-          self.class.connection.next_val_sequence("#{self.class.table_name}_version_number")
-        end
+          def create_new_version
+            current_instance = self.class.find(self.id).clone
+            current_instance.is_current_version = false
+            current_instance.parent_version = self.id
+            current_instance.save
+          end
         
-      end
+          def disable_versionable_once          
+            if self.class.instance_variable_get('@versionable_disabled')
+              self.class.instance_variable_set('@versionable_disabled', false)
+              true
+            end
+          end
+        
+          # Note that every time that is called, a version number is assigned
+          def next_version_number
+            self.class.connection.next_val_sequence("#{self.class.table_name}_version_number")
+          end
+        
+        end
 
+      end
     end
   end
-end
