@@ -231,6 +231,21 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     versionable.versions.first.delete
     assert_equal 5, TestVersionableModel.count(:version => :all)    
   end
+  
+  def test_should_restore_version
+    set_test_model_as_versionable
+    versionable = create_versionable_model(:field => 'val')
+    versionable.update_attribute :field, 'new'
+    old_version = versionable.versions.first
+
+    versionable.restore(old_version.id)
+    assert versionable.is_current_version
+    assert_equal 'val', versionable.field
+    assert_equal 2, versionable.versions.count
+    assert_equal 'val', versionable.versions.first.field
+    assert_equal 'new', versionable.versions.last.field
+  end
+
   private
     
   def create_ar(options = {})

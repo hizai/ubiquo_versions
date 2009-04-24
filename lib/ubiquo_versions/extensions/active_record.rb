@@ -42,6 +42,12 @@ module UbiquoVersions
           define_method("versions") do
             self.class.versions(self)
           end
+          
+          define_method('restore') do |old_version_id|
+            old_version = self.class.find(old_version_id, :version => :all)
+            restored_attributes = old_version.instance_variable_get('@attributes')
+            self.update_attributes restored_attributes.merge(:is_current_version => true)
+          end
         end
 
         # Adds :current_version => true to versionable models unless explicitly said :version option
