@@ -138,12 +138,12 @@ module UbiquoVersions
               self.version_number = next_version_number
               self.is_current_version = true
             end
+            create_version_for_other_current_versions if self.is_current_version
             create_without_version_info
 
             unless self.parent_version
               self.class.without_versionable {update_attribute :parent_version, self.id}
             end
-            create_version_for_other_current_versions if self.is_current_version
           else
             create_without_version_info
 
@@ -158,8 +158,8 @@ module UbiquoVersions
             end
             self.version_number = next_version_number
             create_new_version
-            update_without_version
             create_version_for_other_current_versions if self.is_current_version
+            update_without_version
           else
             update_without_version
           end
@@ -170,16 +170,17 @@ module UbiquoVersions
           # This is useful if for any reason (e.g i18n) you have more than one current version per content_id
           def create_version_for_other_current_versions
             self.class.all(
-              :conditions => ["content_id = ? AND is_current_version = ? AND id != ?", self.content_id, true, self.id]
+              :conditions => ["content_id = ? AND is_current_version = ? AND id != ?", self.content_id, true, self.id || 0]
             ).each do |current_version|
-              current_version.create_new_version
+              current_version.create_new_version(true)
             end
           end
         
-          def create_new_version
+          def create_new_version(add_version_number = false)
             current_instance = self.class.find(self.id).clone
             current_instance.is_current_version = false
             current_instance.parent_version = self.id
+            current_instance.version_number = next_version_number if add_version_number
             current_instance.save
             # delete the older versions if there are too many versions (as defined by max_amount)
             if max_amount = self.class.instance_variable_get('@versionable_options')[:max_amount]

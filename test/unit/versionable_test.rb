@@ -161,6 +161,8 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     versionable_1.update_attribute :field, 'new'
     assert_equal 2, versionable_1.versions.size # create 2, update
     assert_equal 1, versionable_2.versions.size # update
+    version_numbers = TestVersionableModel.all(:version => :all).map(&:version_number)
+    assert_equal version_numbers, version_numbers.uniq
   end
   
   def test_should_execute_without_versionable
