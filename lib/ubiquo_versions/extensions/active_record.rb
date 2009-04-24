@@ -20,7 +20,7 @@ module UbiquoVersions
           @versionable_options = options
           # version_number should not be copied between instances if a model is translatable
           if respond_to?(:add_translatable_attributes) 
-            add_translatable_attributes(:version_number, :is_current_version)
+            add_translatable_attributes(:version_number, :is_current_version, :parent_version)
           end
           
           # version_number constitute a translatable scope (should not update old versions)

@@ -1,0 +1,11 @@
+<% versions = model.versions %>
+
+<h3><%= t("ubiquo.versions.versions") %></h3>
+<ul id="model_translations">
+  <% versions.each do |version| %>
+    <li>
+      <%= version.version_number %> - <%= l version.updated_at %>
+      <%= link_to t("ubiquo.preview"), url_for(params.merge(:preview_id => version.id)) %>
+    </li>
+  <% end %>
+</ul>
