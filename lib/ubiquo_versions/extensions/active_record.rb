@@ -34,18 +34,8 @@ module UbiquoVersions
               end
             )
           end
-
-          named_scope :versions, lambda{ |version|
-            @find_versions_from_version = version
-            {}
-          }
-          # Instance method to find translations
-          define_method('translations') do
-            self.class.translations(self)
-          end
-
+          
           define_method("versions") do
-            self.class.versions(self)
             self.class.all({:conditions => [
                   "#{self.class.table_name}.content_id = ? AND #{self.class.table_name}.id != ? AND #{self.class.table_name}.parent_version = ?", 
                   self.content_id, 
@@ -59,10 +49,9 @@ module UbiquoVersions
 
         # Adds :current_version => true to versionable models unless explicitly said :version option
         def find_with_current_version(*args)
-          if @versionable
+          if self.instance_variable_get('@versionable')
             options = args.extract_options!
-            from_version = self.instance_variable_get('@find_versions_from_versions')
-            prepare_options_for_version!(options, from_version)
+            prepare_options_for_version!(options)
             
             find_without_current_version(args.first, options)
           else
