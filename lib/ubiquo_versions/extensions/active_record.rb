@@ -34,24 +34,23 @@ module UbiquoVersions
               end
             )
           end
-          
+          named_scope :versions, lambda{ |version|
+            @find_versions_from_version = version
+            {}
+          }
+
           define_method("versions") do
-            self.class.all({:conditions => [
-                  "#{self.class.table_name}.content_id = ? AND #{self.class.table_name}.id != ? AND #{self.class.table_name}.parent_version = ?", 
-                  self.content_id, 
-                  self.id,
-                  self.parent_version
-                ],
-                :version => :all
-              })
+            self.class.versions(self)
           end
         end
 
         # Adds :current_version => true to versionable models unless explicitly said :version option
         def find_with_current_version(*args)
-          if self.instance_variable_get('@versionable')
+          if @versionable
+            from_version = @find_versions_from_version
+            @find_versions_from_version = nil
             options = args.extract_options!
-            prepare_options_for_version!(options)
+            prepare_options_for_version!(options, from_version)
             
             find_without_current_version(args.first, options)
           else
@@ -61,9 +60,11 @@ module UbiquoVersions
         
         # Adds :current_version => true to versionable models unless explicitly said :version option
         def count_with_current_version(*args)
-          if self.instance_variable_get('@versionable')
+          if @versionable
+            from_version = @find_versions_from_version
+            @find_versions_from_version = nil
             options = args.extract_options!
-            prepare_options_for_version!(options)
+            prepare_options_for_version!(options, from_version)
             
             count_without_current_version(args.first, options)
           else
@@ -82,7 +83,7 @@ module UbiquoVersions
           end
         end
         
-        def prepare_options_for_version!(options)
+        def prepare_options_for_version!(options, from_version)
           v = options.delete(:version)
           
           case v
@@ -91,7 +92,17 @@ module UbiquoVersions
           when :all
             #do nothing...
           else # no t an expected version setted. Acts as :last
-            options[:conditions] = merge_conditions(options[:conditions], {:is_current_version => true})
+            unless from_version
+              options[:conditions] = merge_conditions(options[:conditions], {:is_current_version => true})
+            else
+              options[:conditions] = merge_conditions(options[:conditions], 
+                ["#{self.table_name}.content_id = ? AND #{self.table_name}.id != ? AND #{self.table_name}.parent_version = ?", 
+                  from_version.content_id, 
+                  from_version.id,
+                  from_version.parent_version
+                ]
+              )
+            end
           end
           options
         end

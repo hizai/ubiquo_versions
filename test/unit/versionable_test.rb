@@ -62,6 +62,19 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal 2, versionable.versions.size
   end
   
+  def test_should_get_versions_count
+    versionable = create_versionable_model(:content_id => 2)
+    assert_equal 0, versionable.versions.count
+  end
+  
+  def test_should_get_chained_versions
+    versionable = create_versionable_model(:content_id => 2)
+    versionable.update_attribute :field, 'val'
+    assert_equal 1, versionable.versions.count
+    assert_equal 1, versionable.versions.first.versions.count
+    assert_equal versionable, versionable.versions.first.versions.first
+  end
+
   def test_should_update_existing_on_update
     versionable = create_versionable_model(:content_id => 2)
     first_version = versionable.version_number
