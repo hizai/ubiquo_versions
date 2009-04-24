@@ -109,6 +109,8 @@ module UbiquoVersions
         def self.included(klass)
           klass.alias_method_chain :create, :version_info
           klass.alias_method_chain :update, :version
+          klass.alias_method_chain :delete, :all_versions
+          klass.alias_method_chain :destroy, :all_versions
         end
         
         # proxy to add a new content_id if empty on creation
@@ -175,6 +177,20 @@ module UbiquoVersions
                 versions_by_number[i].delete
               end
             end
+          end
+          
+          def destroy_with_all_versions
+            if self.class.instance_variable_get('@versionable') && self.is_current_version
+              self.versions.destroy_all
+            end
+            destroy_without_all_versions
+          end
+        
+          def delete_with_all_versions
+            if self.class.instance_variable_get('@versionable') && self.is_current_version
+              self.versions.delete_all
+            end
+            delete_without_all_versions
           end
         
           def disable_versionable_once          

@@ -169,6 +169,53 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal_set [c-1, c-2, c-3], versionable.versions.map(&:version_number)
   end
   
+  def test_destroy_should_destroy_all_versions_if_current_version
+    set_test_model_as_versionable
+    TestVersionableModel.delete_all
+    versionable = create_versionable_model
+    5.times do 
+     versionable.update_attribute :field, 'val'
+    end
+    assert_equal 6, TestVersionableModel.count(:version => :all)
+    versionable.destroy
+    assert_equal 0, TestVersionableModel.count(:version => :all)    
+  end
+  
+  def test_destroy_should_destroy_only_one_version_if_not_current
+    set_test_model_as_versionable
+    TestVersionableModel.delete_all
+    versionable = create_versionable_model
+    5.times do 
+     versionable.update_attribute :field, 'val'
+    end
+    assert_equal 6, TestVersionableModel.count(:version => :all)
+    versionable.versions.first.destroy
+    assert_equal 5, TestVersionableModel.count(:version => :all)        
+  end
+  
+  def test_delete_should_delete_all_versions_if_current_version
+    set_test_model_as_versionable
+    TestVersionableModel.delete_all
+    versionable = create_versionable_model
+    5.times do 
+     versionable.update_attribute :field, 'val'
+    end
+    assert_equal 6, TestVersionableModel.count(:version => :all)
+    versionable.delete
+    assert_equal 0, TestVersionableModel.count(:version => :all)        
+  end
+  
+  def test_delete_should_delete_only_one_version_if_not_current
+    set_test_model_as_versionable
+    TestVersionableModel.delete_all
+    versionable = create_versionable_model
+    5.times do 
+     versionable.update_attribute :field, 'val'
+    end
+    assert_equal 6, TestVersionableModel.count(:version => :all)
+    versionable.versions.first.delete
+    assert_equal 5, TestVersionableModel.count(:version => :all)    
+  end
   private
     
   def create_ar(options = {})
