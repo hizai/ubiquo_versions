@@ -6,6 +6,7 @@
     <li>
       <%= version.version_number %> - <%= l version.updated_at %>
       <%= link_to t("ubiquo.preview"), url_for(params.merge(:preview_id => version.id)) %>
+      <%= link_to t("ubiquo.restore"), url_for(params.merge(:action => 'update', :restore_from_version => version.id)), :method => :put %>
     </li>
   <% end %>
 </ul>
