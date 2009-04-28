@@ -15,6 +15,11 @@ module UbiquoVersions
             table_definition.integer :parent_version
           end
         end
+        if versionable
+          add_index table_name, :is_current_version
+          add_index table_name, :content_id unless indexes(table_name).map(&:columns).flatten.include? "content_id"
+          add_index table_name, :parent_version
+        end
       end
     end
   end
