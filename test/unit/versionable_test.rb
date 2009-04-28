@@ -242,8 +242,8 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert versionable.is_current_version
     assert_equal 'val', versionable.field
     assert_equal 2, versionable.versions.count
-    assert_equal 'val', versionable.versions.first.field
-    assert_equal 'new', versionable.versions.last.field
+    assert_equal 'val', versionable.versions.all(:order => "version_number").first.field
+    assert_equal 'new', versionable.versions.all(:order => "version_number").last.field
   end
 
   private
