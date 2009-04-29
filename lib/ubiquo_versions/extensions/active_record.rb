@@ -144,7 +144,6 @@ module UbiquoVersions
               self.version_number = next_version_number
               self.is_current_version = true
             end
-            create_version_for_other_current_versions if self.is_current_version
             create_without_version_info
 
             unless self.parent_version
@@ -152,19 +151,17 @@ module UbiquoVersions
             end
           else
             create_without_version_info
-
           end
         end
         
         def update_with_version
-          if self.class.instance_variable_get('@versionable')
+          if self.class.instance_variable_get('@versionable') && self.changed?
             if disable_versionable_once
               update_without_version
               return
             end
             self.version_number = next_version_number
             create_new_version
-            create_version_for_other_current_versions if self.is_current_version
             update_without_version
           else
             update_without_version
@@ -173,7 +170,7 @@ module UbiquoVersions
         
           # This function looks for other instances sharing the same content_id and is_current_version = true,
           # and creates a new version for them too.
-          # This is useful if for any reason (e.g i18n) you have more than one current version per content_id
+          # This is useful if for any reason you have more than one current version per content_id
           def create_version_for_other_current_versions
             self.class.all(
               :conditions => ["content_id = ? AND is_current_version = ? AND id != ?", self.content_id, true, self.id || 0]
