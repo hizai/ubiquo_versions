@@ -6,4 +6,4 @@ module UbiquoVersions
 end
 
 ActiveRecord::Base.send(:include, UbiquoVersions::Extensions::ActiveRecord)
-ActionController::Base.helper(UbiquoVersions::Extensions::Helpers)
+Ubiquo::Extensions::UbiquoAreaController.append_helper(UbiquoVersions::Extensions::Helpers)
