@@ -1,4 +1,6 @@
 module UbiquoVersions
+  # This module performs the necessary steps to preserve the validity of an 
+  # schema dump if, when creating a table, the :versionable option has been set
   module SchemaDumper
     def self.included(klass)
       klass.send(:alias_method_chain, :table, :versions)

@@ -9,12 +9,19 @@ module UbiquoVersions
       end
       
       module ClassMethods
+        
         # Class method for ActiveRecord that states that a model is versionable
         #
         # EXAMPLE:
         #
         #   versionable :max_amount => 5
-
+        # 
+        # possible options:
+        #   :max_amount => number of versions that will be stored as a maximum. 
+        #                  When this limit is reached, the system starts 
+        #                  deleting older versions as required
+        #
+        
         def versionable(options = {})
           @versionable = true
           @versionable_options = options
@@ -89,6 +96,15 @@ module UbiquoVersions
           end
         end
         
+        # Given a set of "find" options, this method will update it as follows:
+        #   if a :version option exists, and is an integer, a :version_number condition will be added
+        #   if a :version option exists, and the value :all, a condition to filter by
+        #     version will not be added
+        #   by default, a condition to find by :is_current_version = true is added. 
+        #   
+        #   If the from_version attribute is an instance of this model, it will look for versions created with
+        #   from_version as the original version.
+        #
         def prepare_options_for_version!(options, from_version)
           v = options.delete(:version)
           
@@ -96,8 +112,8 @@ module UbiquoVersions
           when Fixnum
             options[:conditions] = merge_conditions(options[:conditions], {:version_number => v})
           when :all
-            #do nothing...
-          else # no t an expected version setted. Acts as :last
+            # do nothing...
+          else # not an expected version set. Acts as :last
             unless from_version
               options[:conditions] = merge_conditions(options[:conditions], {:is_current_version => true})
             else
@@ -114,6 +130,8 @@ module UbiquoVersions
         end
         
         # Used to execute a block that would create a version without this effect
+        # Note that it will disable versionable just for one time, so the block
+        # should only contain one versionable-firing event
         def without_versionable
           @versionable_disabled = true
           yield
@@ -154,6 +172,7 @@ module UbiquoVersions
           end
         end
         
+        # proxy to add a create a new version when an update is performed
         def update_with_version
           if self.class.instance_variable_get('@versionable') && self.changed?
             if disable_versionable_once
@@ -168,60 +187,64 @@ module UbiquoVersions
           end
         end
         
-          # This function looks for other instances sharing the same content_id and is_current_version = true,
-          # and creates a new version for them too.
-          # This is useful if for any reason you have more than one current version per content_id
-          def create_version_for_other_current_versions
-            self.class.all(
-              :conditions => ["content_id = ? AND is_current_version = ? AND id != ?", self.content_id, true, self.id || 0]
-            ).each do |current_version|
-              current_version.create_new_version(true)
+        # This function looks for other instances sharing the same content_id and is_current_version = true,
+        # and creates a new version for them too.
+        # This is useful if for any reason you have more than one current version per content_id
+        def create_version_for_other_current_versions
+          self.class.all(
+            :conditions => ["content_id = ? AND is_current_version = ? AND id != ?", self.content_id, true, self.id || 0]
+          ).each do |current_version|
+            current_version.create_new_version(true)
+          end
+        end
+
+        # This function creates a new old version of the current instance by cloning it
+        def create_new_version(add_version_number = false)
+          current_instance = self.class.find(self.id).clone
+          current_instance.is_current_version = false
+          current_instance.parent_version = self.id
+          current_instance.version_number = next_version_number if add_version_number
+          current_instance.save
+          # delete the older versions if there are too many versions (as defined by max_amount)
+          if max_amount = self.class.instance_variable_get('@versionable_options')[:max_amount]
+            versions_by_number = self.versions.sort {|a,b| a.version_number <=> b.version_number}
+            (versions_by_number.size - max_amount).times do |i|
+              versions_by_number[i].delete
             end
           end
-        
-          def create_new_version(add_version_number = false)
-            current_instance = self.class.find(self.id).clone
-            current_instance.is_current_version = false
-            current_instance.parent_version = self.id
-            current_instance.version_number = next_version_number if add_version_number
-            current_instance.save
-            # delete the older versions if there are too many versions (as defined by max_amount)
-            if max_amount = self.class.instance_variable_get('@versionable_options')[:max_amount]
-              versions_by_number = self.versions.sort {|a,b| a.version_number <=> b.version_number}
-              (versions_by_number.size - max_amount).times do |i|
-                versions_by_number[i].delete
-              end
-            end
+        end
+
+        # proxy to destroy all the related versions on destroy
+        def destroy_with_all_versions
+          if self.class.instance_variable_get('@versionable') && self.is_current_version
+            self.versions.destroy_all
           end
-          
-          def destroy_with_all_versions
-            if self.class.instance_variable_get('@versionable') && self.is_current_version
-              self.versions.destroy_all
-            end
-            destroy_without_all_versions
+          destroy_without_all_versions
+        end
+
+        # proxy to delete all the related versions on delete
+        def delete_with_all_versions
+          if self.class.instance_variable_get('@versionable') && self.is_current_version
+            self.versions.delete_all
           end
-        
-          def delete_with_all_versions
-            if self.class.instance_variable_get('@versionable') && self.is_current_version
-              self.versions.delete_all
-            end
-            delete_without_all_versions
+          delete_without_all_versions
+        end
+
+        # This method disables versionable for one action
+        def disable_versionable_once
+          if self.class.instance_variable_get('@versionable_disabled')
+            self.class.instance_variable_set('@versionable_disabled', false)
+            true
           end
-        
-          def disable_versionable_once          
-            if self.class.instance_variable_get('@versionable_disabled')
-              self.class.instance_variable_set('@versionable_disabled', false)
-              true
-            end
-          end
-        
-          # Note that every time that is called, a version number is assigned
-          def next_version_number
-            self.class.connection.next_val_sequence("#{self.class.table_name}_version_number")
-          end
-        
+        end
+
+        # Note that every time that is called, a version number is assigned
+        def next_version_number
+          self.class.connection.next_val_sequence("#{self.class.table_name}_version_number")
         end
 
       end
+
     end
   end
+end
