@@ -156,7 +156,7 @@ module UbiquoVersions
               return
             end
             unless self.content_id
-              self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_content_id")
+              self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_$_content_id")
             end
             unless self.version_number
               self.version_number = next_version_number
@@ -240,7 +240,7 @@ module UbiquoVersions
 
         # Note that every time that is called, a version number is assigned
         def next_version_number
-          self.class.connection.next_val_sequence("#{self.class.table_name}_version_number")
+          self.class.connection.next_val_sequence("#{self.class.table_name}_$_version_number")
         end
 
       end
