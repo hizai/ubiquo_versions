@@ -1,11 +1,6 @@
 require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class Ubiquo::VersionableTest < ActiveSupport::TestCase
-
-  def setup
-    set_test_model_as_versionable
-    create_ar_test_backend
-  end
   
   def test_should_set_model_as_versionable
     ar = create_ar
@@ -101,11 +96,13 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
   end
 
   def test_should_find_specific_version_if_set
+    set_test_model_as_versionable
     versionable = create_versionable_model(:content_id => 2)
-    assert_nil TestVersionableModel.last(:version => 2)
+    assert_nil TestVersionableModel.last(:version => versionable.version_number - 1)
     versionable.update_attribute :content_id, 10
-    assert_not_nil TestVersionableModel.all(:version => 2)
-    assert_equal 10, TestVersionableModel.last(:version => 2).content_id
+    assert_not_nil TestVersionableModel.first(:version => versionable.reload.version_number - 1)
+    assert_equal 2, TestVersionableModel.last(:version => versionable.version_number - 1).content_id
+    assert_equal 10, TestVersionableModel.last(:version => versionable.version_number).content_id
   end
 
   def test_should_merge_find_conditions
@@ -265,7 +262,14 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     TestVersionableModel.create(options)
   end
 
-  def create_ar_test_backend
+  
+  def set_test_model_as_versionable(options = {})
+    TestVersionableModel.class_eval do
+      versionable options
+    end
+  end
+  
+  def self.create_ar_test_backend_for_versionable
     silence_stderr do
       # Creates a test table for AR things work properly
       if ActiveRecord::Base.connection.tables.include?("test_versionable_models")
@@ -277,11 +281,7 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     end
   end
   
-  def set_test_model_as_versionable(options = {})
-    TestVersionableModel.class_eval do
-      versionable options
-    end
-  end
+  create_ar_test_backend_for_versionable
 end
 
 # Model used to test Versionable extensions
