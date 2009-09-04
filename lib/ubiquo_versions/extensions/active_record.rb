@@ -79,7 +79,7 @@ module UbiquoVersions
             options = args.extract_options!
             prepare_options_for_version!(options, from_version)
             
-            count_without_current_version(args.first, options)
+            count_without_current_version(args.first || :all, options)
           else
             count_without_current_version(*args)
           end
