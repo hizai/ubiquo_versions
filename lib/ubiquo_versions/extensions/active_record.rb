@@ -34,7 +34,7 @@ module UbiquoVersions
           if respond_to?(:add_translatable_scope) 
             add_translatable_scope(
               lambda do |element|
-                condition = "#{self.table_name}.is_current_version = true"
+                condition = sanitize_sql_for_conditions ["#{self.table_name}.is_current_version = ?", true]
                 # a new version record with old information doesn't have related translations
                 condition += " AND 1=0 " unless element.is_current_version
                 condition
