@@ -6,6 +6,7 @@ module UbiquoVersions
       # Perform the actual linking with create_table
       def self.included(klass)
         klass.send(:alias_method_chain, :create_table, :versions)
+        klass.send(:alias_method_chain, :change_table, :versions)
       end
 
       # Parse the :versionable option as a create_table extension
@@ -16,21 +17,46 @@ module UbiquoVersions
       #   table.is_current_version : boolean
       #   table.parent_version : integer
       # with their respective indexes (except for version_number)
-      def create_table_with_versions(table_name, options={})
+      def create_table_with_versions(*args, &block)
+        SchemaStatements.apply_versionable_option!(:create_table, self, *args, &block)
+      end
+
+      # Parse the :versionable option as a create_table extension
+      #
+      # This will actually add four fields:
+      #   table.version_number : sequence
+      #   table.content_id : sequence
+      #   table.is_current_version : boolean
+      #   table.parent_version : integer
+      # with their respective indexes (except for version_number)
+      def change_table_with_versions(*args, &block)
+        SchemaStatements.apply_versionable_option!(:change_table, self, *args, &block)
+      end
+
+      # Performs the actual job of applying the :translatable option
+      def self.apply_versionable_option!(method, adapter, table_name, options = {})
         versionable = options.delete(:versionable)
-        create_table_without_versions(table_name, options) do |table_definition|
-          yield table_definition
+        method_name = "#{method}_without_versions"
+
+        # not all methods accept the options hash
+        args = [table_name]
+        args << options if adapter.method(method_name).arity != 1
+        
+        adapter.send(method_name, *args) do |table|
           if versionable
-            table_definition.sequence table_name, :version_number
-            table_definition.boolean :is_current_version, :null => false, :default => false
-            table_definition.sequence table_name, :content_id
-            table_definition.integer :parent_version
+            table.sequence table_name, :version_number
+            table.boolean :is_current_version, :null => false, :default => false
+            table.sequence table_name, :content_id
+            table.integer :parent_version
           end
+          yield table
         end
         if versionable
-          add_index table_name, :is_current_version
-          add_index table_name, :content_id unless indexes(table_name).map(&:columns).flatten.include? "content_id"
-          add_index table_name, :parent_version
+          [:is_current_version, :parent_version, :content_id].each do |index|
+            unless adapter.indexes(table_name).map(&:columns).flatten.include? index.to_s
+              adapter.add_index table_name, index
+            end
+          end
         end
       end
     end

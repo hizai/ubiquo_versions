@@ -27,4 +27,32 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     assert_not_nil definition[:content_id]
   end
   
+  def test_change_table_with_versionable
+    connection = ActiveRecord::Base.connection
+    connection.create_table(:test, :force => true){}
+    connection.change_table(:test, :versionable => true){}
+    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    
+    assert column_names.include?('content_id')
+    assert column_names.include?('version_number')
+    assert column_names.include?('parent_version')
+    assert column_names.include?('is_current_version')
+    assert_equal 2, connection.list_sequences("test_$").size
+    connection.drop_table(:test)
+  end
+
+  def test_change_table_without_versionable
+    connection = ActiveRecord::Base.connection
+    ActiveRecord::Base.silence{
+      connection.create_table(:test, :force => true){}
+      connection.change_table(:test){}
+    }
+    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    assert !column_names.include?('content_id')
+    assert !column_names.include?('version_number')
+    assert !column_names.include?('parent_version')
+    assert !column_names.include?('is_current_version')
+    assert_equal 0, connection.list_sequences("test_$").size
+    connection.drop_table(:test)
+  end
 end
