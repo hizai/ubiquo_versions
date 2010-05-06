@@ -253,6 +253,16 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
     assert_equal 'new', versionable.versions.all(:order => "version_number").last.field
   end
 
+  def test_versions_scope_should_work_on_subclasses_if_previously_loaded
+    assert_nothing_raised do
+      TestVersionableModelSubclass.scopes.clear
+      TestVersionableModel.class_eval do
+        versionable
+      end
+      TestVersionableModelSubclass.versions(1)
+    end
+  end
+
   private
     
   def create_ar(options = {})
@@ -285,6 +295,7 @@ class Ubiquo::VersionableTest < ActiveSupport::TestCase
   create_ar_test_backend_for_versionable
 end
 
-# Model used to test Versionable extensions
+# Models used to test Versionable extensions
 TestVersionableModel = Class.new(ActiveRecord::Base)
+TestVersionableModelSubclass = Class.new(TestVersionableModel)
   

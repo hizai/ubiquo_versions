@@ -46,6 +46,11 @@ module UbiquoVersions
             {}
           }
 
+          # Apply versions named scope to any possible already loaded subclass
+          subclasses.each do |klass|
+            klass.scopes[:versions] = scopes[:versions]
+          end
+
           define_method("versions") do
             self.class.versions(self)
           end
