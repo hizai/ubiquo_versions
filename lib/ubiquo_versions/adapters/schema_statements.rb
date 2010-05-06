@@ -45,19 +45,33 @@ module UbiquoVersions
         adapter.send(method_name, *args) do |table|
           if versionable
             table.sequence table_name, :version_number
-            table.boolean :is_current_version, :null => false, :default => false
             table.sequence table_name, :content_id
+            table.boolean :is_current_version, :null => false, :default => false
             table.integer :parent_version
+          elsif versionable == false && method == :change_table
+            table.remove :is_current_version, :parent_version
+            table.remove_sequence :test, :version_number
+            table.remove_sequence :test, :content_id
           end
           yield table
         end
+
+        # create or remove indexes for these new fields
+        indexes = [:is_current_version, :parent_version, :content_id]
         if versionable
-          [:is_current_version, :parent_version, :content_id].each do |index|
+          indexes.each do |index|
             unless adapter.indexes(table_name).map(&:columns).flatten.include? index.to_s
               adapter.add_index table_name, index
             end
           end
+        elsif versionable == false
+          indexes.each do |index|
+            if adapter.indexes(table_name).map(&:columns).flatten.include? index.to_s
+              adapter.remove_index table_name, index
+            end
+          end
         end
+
       end
     end
   end
