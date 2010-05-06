@@ -31,7 +31,7 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     connection = ActiveRecord::Base.connection
     connection.create_table(:test, :force => true){}
     connection.change_table(:test, :versionable => true){}
-    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    column_names = connection.columns('test').map(&:name).map(&:to_s)
     
     assert column_names.include?('content_id')
     assert column_names.include?('version_number')
@@ -46,7 +46,7 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     connection.create_table(:test, :force => true){}
     connection.change_table(:test, :versionable => true){}
     connection.change_table(:test, :versionable => false){}
-    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    column_names = connection.columns('test').map(&:name).map(&:to_s)
 
     assert !column_names.include?('content_id')
     assert !column_names.include?('version_number')
@@ -61,7 +61,7 @@ class UbiquoVersions::AdaptersTest < ActiveSupport::TestCase
     connection = ActiveRecord::Base.connection
     connection.create_table(:test, :force => true){}
     connection.change_table(:test){}
-    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    column_names = connection.columns('test').map(&:name).map(&:to_s)
 
     assert !column_names.include?('content_id')
     assert !column_names.include?('version_number')
